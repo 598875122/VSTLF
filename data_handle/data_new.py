@@ -8,60 +8,64 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader, TensorDataset
 import matplotlib.pyplot as plt
-# 读取数据
+
+# Load data
 data = pd.read_csv('../continuous dataset.csv')
-# 确保datetime列为datetime类型
+
+# Ensure the datetime column is of datetime type
 data['datetime'] = pd.to_datetime(data['datetime'])
 
-
-# 设置datetime列为索引（可选）
+# Optionally set the datetime column as index
 data.set_index('datetime', inplace=True)
 data_target = data
 # data = data.drop(['nat_demand'], axis=1)
-# 用于存储处理后的数据
+
+# Variables to store processed data
 X = []
 y = []
 timestamps = []
-# 滑动窗口大小为7小时
+
+# Sliding window size of 7 hours
 window_size = 7
 
-# 遍历数据
+# Iterate over the data
 for i in range(len(data) - window_size):
-    # 提取窗口内的特征
+    # Extract features within the window
     window_features = data.iloc[i:i + window_size].values
-    # 提取预测目标
+    # Extract target for prediction
     target = data_target['nat_demand'].iloc[i + window_size]
 
-    # 保存时间戳
+    # Save the timestamp
     timestamps.append(data.index[i + window_size])
-    # 将特征和目标分别添加到X和y中
+    # Append features and target to X and y respectively
     X.append(window_features)
     y.append(target)
 
-# 转换为numpy数组
+# Convert to numpy arrays
 X = np.array(X)
 y = np.array(y)
-# 数据标准化
+
+# Standardize the data
 scaler = StandardScaler()
 X = scaler.fit_transform(X.reshape(-1, X.shape[-1])).reshape(X.shape)
 
-# 数据集分割为训练集和测试集
-#X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.1)
+# Split the dataset into training and testing sets
+# X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.1)
 
-# 手动按顺序分割数据集
+# Manually split the dataset in order
 test_size = 0.1
 split_index = int(len(X) * (1 - test_size))
 X_train, X_test = X[:split_index], X[split_index:]
 y_train, y_test = y[:split_index], y[split_index:]
 timestamps_train, timestamps_test = timestamps[:split_index], timestamps[split_index:]
 
-# 转换为Tensor
+# Convert to Tensor
 X_train = torch.tensor(X_train, dtype=torch.float32)
 X_test = torch.tensor(X_test, dtype=torch.float32)
 y_train = torch.tensor(y_train, dtype=torch.float32)
 y_test = torch.tensor(y_test, dtype=torch.float32)
 
-# 创建数据集和数据加载器
+# Create datasets and data loaders
 train_dataset = TensorDataset(X_train, y_train)
 test_dataset = TensorDataset(X_test, y_test)
 

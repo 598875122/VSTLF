@@ -54,7 +54,7 @@ class HourOfDay(TimeFeature):
 
 
 class DayOfWeek(TimeFeature):
-    """Hour of day encoded as value between [-0.5, 0.5]"""
+    """Day of week encoded as value between [-0.5, 0.5]"""
 
     def __call__(self, index: pd.DatetimeIndex) -> np.ndarray:
         return index.dayofweek / 6.0 - 0.5
@@ -147,23 +147,24 @@ def time_features_from_frequency_str(freq_str: str) -> List[TimeFeature]:
 
 def time_features(dates, timeenc=1, freq='h'):
     """
-    > `time_features` takes in a `dates` dataframe with a 'dates' column and extracts the date down to `freq` where freq can be any of the following if `timeenc` is 0:
-    > * m - [month]
-    > * w - [month]
-    > * d - [month, day, weekday]
-    > * b - [month, day, weekday]
-    > * h - [month, day, weekday, hour]
-    > * t - [month, day, weekday, hour, *minute]
-    >
-    > If `timeenc` is 1, a similar, but different list of `freq` values are supported (all encoded between [-0.5 and 0.5]):
-    > * Q - [month]
-    > * M - [month]
-    > * W - [Day of month, week of year]
-    > * D - [Day of week, day of month, day of year]
-    > * B - [Day of week, day of month, day of year]
-    > * H - [Hour of day, day of week, day of month, day of year]
-    > * T - [Minute of hour*, hour of day, day of week, day of month, day of year]
-    > * S - [Second of minute, minute of hour, hour of day, day of week, day of month, day of year]
+    `time_features` extracts time features from a `dates` dataframe with a 'dates' column
+    down to the specified `freq`. When `timeenc` is 0:
+    * m - [month]
+    * w - [month]
+    * d - [month, day, weekday]
+    * b - [month, day, weekday]
+    * h - [month, day, weekday, hour]
+    * t - [month, day, weekday, hour, minute]
+
+    When `timeenc` is 1, the following `freq` values are supported (all encoded between [-0.5 and 0.5]):
+    * Q - [month]
+    * M - [month]
+    * W - [Day of month, week of year]
+    * D - [Day of week, day of month, day of year]
+    * B - [Day of week, day of month, day of year]
+    * H - [Hour of day, day of week, day of month, day of year]
+    * T - [Minute of hour, hour of day, day of week, day of month, day of year]
+    * S - [Second of minute, minute of hour, hour of day, day of week, day of month, day of year]
 
     *minute returns a number from 0-3 corresponding to the 15 minute period it falls into.
     """
@@ -184,30 +185,28 @@ def time_features(dates, timeenc=1, freq='h'):
         dates = pd.to_datetime(dates.date.values)
         return np.vstack([feat(dates) for feat in time_features_from_frequency_str(freq)]).transpose(1, 0)
 
-# 读取数据
+# Read data
 data = pd.read_csv(r'..\continuous dataset.csv')
 
-# 将 Series 转换为 DataFrame，并重命名列为 'date'
+# Convert Series to DataFrame and rename column to 'date'
 df_time = pd.DataFrame({'date': pd.to_datetime(data['datetime'])})
 
-
-# 现在可以调用 time_features 函数，因为我们有了正确的 DataFrame
+# Now we can call time_features function as we have the correct DataFrame
 features = time_features(df_time, timeenc=1, freq='h')
 
-# 1. 分离特征和标签
-X = data.iloc[:, 1:]  # 除去第一列时间和最后一列标签的其他特征
-y = data['nat_demand']  # 最后一列是标签
+# 1. Separate features and labels
+X = data.iloc[:, 1:]  # Other features excluding the first column (time) and the last column (label)
+y = data['nat_demand']  # The last column is the label
 y = y.to_numpy()
-# 2. 标准化特征
+
+# 2. Standardize features
 scaler = StandardScaler()
 X_scaled = scaler.fit_transform(X)
 
-
-# 3. 将时间特征与其他特征合并
+# 3. Combine time features with other features
 # X_combined = np.hstack((X_scaled, features))
 
-
-# 定义滑动窗口
+# Define sliding window
 def create_sliding_window_data(X, y, features, window_size=5):
     X_windows = []
     y_windows = []
@@ -220,23 +219,22 @@ def create_sliding_window_data(X, y, features, window_size=5):
 
     return np.array(X_windows), np.array(y_windows), np.array(feature_windows)
 
-
-# 创建滑动窗口数据
+# Create sliding window data
 window_size = 7
 X_windows, y_windows, feature_windows = create_sliding_window_data(X_scaled, y, features, window_size=window_size)
 
-# # 4. 划分训练集和测试集
+# 4. Split into training and test sets
 # X_train, X_test, y_train, y_test, train_features, test_features = train_test_split(X_windows, y_windows,
 #                                                                                    feature_windows, test_size=0.1)
 
-# 手动按顺序分割数据集
+# Manually split dataset in order
 test_size = 0.05
 split_index = int(len(X_windows) * (1 - test_size))
 X_train, X_test = X_windows[:split_index], X_windows[split_index:]
 y_train, y_test = y_windows[:split_index], y_windows[split_index:]
 train_features, test_features = feature_windows[:-70], feature_windows[split_index:]
 
-# 将 NumPy 数组转换为 PyTorch 张量
+# Convert NumPy arrays to PyTorch tensors
 X_train_tensor = torch.tensor(X_train, dtype=torch.float32)
 y_train_tensor = torch.tensor(y_train, dtype=torch.float32)
 X_test_tensor = torch.tensor(X_test, dtype=torch.float32)
@@ -244,8 +242,7 @@ y_test_tensor = torch.tensor(y_test, dtype=torch.float32)
 train_features_tensor = torch.tensor(train_features, dtype=torch.float32)
 test_features_tensor = torch.tensor(test_features, dtype=torch.float32)
 
-
-# 5. 创建自定义的 Dataset 类
+# 5. Create custom Dataset class
 class CustomDataset(Dataset):
     def __init__(self, X, y, data_stamp):
         self.X = X
@@ -258,13 +255,12 @@ class CustomDataset(Dataset):
     def __getitem__(self, idx):
         return self.X[idx], self.y[idx], self.data_stamp[idx]
 
-
-# 创建训练集和测试集的 Dataset 对象
+# Create Dataset objects for training and test sets
 train_dataset = CustomDataset(X_train_tensor, y_train_tensor, train_features_tensor)
 test_dataset = CustomDataset(X_test_tensor, y_test_tensor, test_features_tensor)
 
-# 6. 使用 DataLoader 封装数据
-batch_size = 32  # 选择一个适合你模型和硬件的批大小
+# 6. Use DataLoader to wrap data
+batch_size = 32  # Choose a batch size suitable for your pth and hardware
 train_loader = DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True)
 test_loader = DataLoader(dataset=test_dataset, batch_size=batch_size, shuffle=False)
 

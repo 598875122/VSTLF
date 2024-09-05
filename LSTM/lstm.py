@@ -9,60 +9,60 @@ from torch.utils.data import DataLoader, TensorDataset
 import matplotlib.pyplot as plt
 import shap
 
-# 读取数据
+# Load the dataset
 data = pd.read_csv('../continuous dataset.csv')
-# 确保datetime列为datetime类型
+
+# Ensure the 'datetime' column is of datetime type
 data['datetime'] = pd.to_datetime(data['datetime'])
 
-
-# 设置datetime列为索引（可选）
+# Set 'datetime' column as the index (optional)
 data.set_index('datetime', inplace=True)
 data_target = data
 data = data.drop(['nat_demand'], axis=1)
-# 用于存储处理后的数据
+
+# Create lists to store processed data
 X = []
 y = []
 timestamps = []
-# 滑动窗口大小为7小时
+
+# Sliding window size of 7 hours
 window_size = 7
 
-# 遍历数据
+# Iterate through the dataset
 for i in range(len(data) - window_size):
-    # 提取窗口内的特征
+    # Extract features from the window
     window_features = data.iloc[i:i + window_size].values
-    # 提取预测目标
+    # Extract the target to be predicted
     target = data_target['nat_demand'].iloc[i + window_size]
 
-    # 保存时间戳
+    # Save the timestamp
     timestamps.append(data.index[i + window_size])
-    # 将特征和目标分别添加到X和y中
+    # Add features and targets to X and y
     X.append(window_features)
     y.append(target)
 
-# 转换为numpy数组
+# Convert lists to numpy arrays
 X = np.array(X)
 y = np.array(y)
-# 数据标准化
+
+# Standardize the data
 scaler = StandardScaler()
 X = scaler.fit_transform(X.reshape(-1, X.shape[-1])).reshape(X.shape)
 
-# 数据集分割为训练集和测试集
-#X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.1)
-
-# 手动按顺序分割数据集
+# Split the data into training and testing sets
 test_size = 0.1
 split_index = int(len(X) * (1 - test_size))
 X_train, X_test = X[:split_index], X[split_index:]
 y_train, y_test = y[:split_index], y[split_index:]
 timestamps_train, timestamps_test = timestamps[:split_index], timestamps[split_index:]
 
-# 转换为Tensor
+# Convert to Tensors
 X_train = torch.tensor(X_train, dtype=torch.float32)
 X_test = torch.tensor(X_test, dtype=torch.float32)
 y_train = torch.tensor(y_train, dtype=torch.float32)
 y_test = torch.tensor(y_test, dtype=torch.float32)
 
-# 创建数据集和数据加载器
+# Create datasets and data loaders
 train_dataset = TensorDataset(X_train, y_train)
 test_dataset = TensorDataset(X_test, y_test)
 
@@ -71,6 +71,7 @@ test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
 
 print(train_dataset[0])
 
+# Model parameters
 is_bidirectional = True
 num_layers = 1
 device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
@@ -80,11 +81,11 @@ if is_bidirectional:
 else:
     D = 1
 
-# LSTM模型
+# Define the LSTM pth
 class LstmModel(nn.Module):
     def __init__(self):
         super(LstmModel, self).__init__()
-        self.lstm = nn.LSTM(input_size=X_train.shape[2], hidden_size=256, num_layers=num_layers, batch_first=True,dropout=0.1, bidirectional=is_bidirectional)
+        self.lstm = nn.LSTM(input_size=X_train.shape[2], hidden_size=256, num_layers=num_layers, batch_first=True, dropout=0.1, bidirectional=is_bidirectional)
         self.fc = nn.Linear(512, 1)
 
     def forward(self, x):
@@ -94,16 +95,17 @@ class LstmModel(nn.Module):
         out = self.fc(out[:, -1, :])
         return out
 
-
+# Set the device and initialize pth, loss function, and optimizer
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 model = LstmModel().to(device)
 criterion = nn.MSELoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
+# Lists to store training and validation losses
 train_losses = []
 val_losses = []
 
-# 训练模型
+# Train the pth
 num_epochs = 200
 for epoch in range(num_epochs):
     model.train()
@@ -118,6 +120,7 @@ for epoch in range(num_epochs):
         train_loss += loss.item()
     train_losses.append(train_loss / len(train_loader))
 
+    # Evaluate on validation set
     model.eval()
     val_loss = 0.0
     with torch.no_grad():
@@ -129,10 +132,7 @@ for epoch in range(num_epochs):
     val_losses.append(val_loss / len(test_loader))
     print(f'Epoch [{epoch + 1}/{num_epochs}], Train Loss: {train_losses[-1]:.4f}, Val Loss: {val_losses[-1]:.4f}')
 
-
-
-
-# 评估模型
+# Evaluate the pth
 model.eval()
 y_pred = []
 y_true = []
@@ -143,21 +143,21 @@ with torch.no_grad():
         y_pred.extend(outputs.squeeze().cpu().numpy())
         y_true.extend(targets.cpu().numpy())
 
-# 设置字体
+# Set font style
 plt.rcParams['font.family'] = 'Times New Roman'
-plt.rcParams['font.size'] = 12  # 设置字体大小
+plt.rcParams['font.size'] = 12
 
-# 绘制图形
-plt.figure(figsize=(10, 6))  # 设置图的大小
-plt.plot(train_losses, label='Training Loss',color='orange')
-plt.plot(val_losses, label='Validation Loss',color='blue')
+# Plot the training and validation loss
+plt.figure(figsize=(10, 6))
+plt.plot(train_losses, label='Training Loss', color='orange')
+plt.plot(val_losses, label='Validation Loss', color='blue')
 plt.xlabel('Epoch')
 plt.ylabel('Loss')
-plt.legend(fontsize=12)  # 设置图例字体大小
+plt.legend(fontsize=12)
 plt.savefig("loss_transformer_lstm.svg", format='svg')
 plt.show()
 
-# 计算评估指标
+# Calculate evaluation metrics
 y_pred = np.array(y_pred)
 y_true = np.array(y_true)
 rmse = np.sqrt(mean_squared_error(y_true, y_pred))
@@ -169,13 +169,12 @@ print(f'MAE: {mae:.2f}')
 print(f'MAPE: {mape:.2f}%')
 print(f'R2: {r2:.2f}')
 
-# 绘制预测值和真实值的折线图进行对比
-plt.figure(figsize=(10, 6))  # 设置图的大小
+# Plot the comparison between true and predicted values
+plt.figure(figsize=(10, 6))
 plt.plot(timestamps_test, y_true, label='True Values', color='red')
 plt.plot(timestamps_test, y_pred, label='Predictions', color='blue')
-plt.xticks(rotation=45)  # 设置横坐标标签旋转45度
-# plt.title('Comparison of True Values and Predictions')
+plt.xticks(rotation=45)
 plt.ylabel('Actual')
-plt.legend(fontsize=12)  # 设置图例字体大小
+plt.legend(fontsize=12)
 plt.savefig("prediction_transformer_lstm.svg", format='svg')
 plt.show()

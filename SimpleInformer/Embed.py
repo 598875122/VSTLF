@@ -23,7 +23,7 @@ class PositionalEmbedding(nn.Module):
         super(PositionalEmbedding, self).__init__()
         # Compute the positional encodings once in log space.
         pe = torch.zeros(max_len, d_model).float()
-        pe.require_grad = False
+        pe.requires_grad = False
 
         position = torch.arange(0, max_len).float().unsqueeze(1)
         div_term = (torch.arange(0, d_model, 2).float() * -(math.log(10000.0) / d_model)).exp()
@@ -44,7 +44,7 @@ class TokenEmbedding(nn.Module):
         padding = 1 if torch.__version__ >= '1.5.0' else 2
         # self.tokenConv = nn.Conv1d(in_channels=c_in, out_channels=d_model,
         #                     kernel_size=3, padding=padding, padding_mode='circular').float()
-        # 注意修改padding以匹配序列长度
+        # Note: Adjust padding to match sequence length
         self.tokenConv = nn.Conv1d(in_channels=c_in, out_channels=d_model,
                                    kernel_size=3, padding=1).float()
         for m in self.modules():
@@ -52,13 +52,12 @@ class TokenEmbedding(nn.Module):
                 nn.init.kaiming_normal_(m.weight, mode='fan_in', nonlinearity='leaky_relu')
 
     def forward(self, x):
-
         x = self.tokenConv(x).transpose(1, 2)
-        # print("token",x.shape)
+        # print("token", x.shape)
         return x
 
 
-# 定义DataEmbedding类
+# Define the DataEmbedding class
 class LinearEmbedding(nn.Module):
     def __init__(self, input_dim, embed_dim):
         super(LinearEmbedding, self).__init__()
@@ -80,10 +79,10 @@ class DataEmbedding(nn.Module):
         self.dropout = nn.Dropout(p=dropout)
 
     def forward(self, x, x_mark):
-        # 确保 x 在传递给 TokenEmbedding 之前转置正确
+        # Ensure x is correctly transposed before passing to TokenEmbedding
         x = self.token_embedding(x.permute(0, 2, 1))
         x = x + self.position_embedding(x) + self.time_embedding(x_mark)
-        # print("embedding",self.position_embedding(x).shape,self.time_embedding(x_mark).shape)
+        # print("embedding", self.position_embedding(x).shape, self.time_embedding(x_mark).shape)
         return self.dropout(x)
 
 

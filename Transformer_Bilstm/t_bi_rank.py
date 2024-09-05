@@ -5,46 +5,46 @@ import torch.nn as nn
 import matplotlib.pyplot as plt
 from nat_demand.data_handle.data_person15 import train_loader, test_loader, X_train
 
-# parameters
-input_dim = X_train.shape[2]
-n_seq = 7
-batch_size = 32
-output_dim = 1
-hidden_dim = 512
-embed_dim = 512
-n_epochs = 200
-num_layers = 1
-learning_rate = 1e-4
-is_bidirectional = False
-dropout_prob = 0
-device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
+# Parameters
+input_dim = X_train.shape[2]  # Dimension of input features
+n_seq = 7  # Length of input sequence
+batch_size = 32  # Batch size for training
+output_dim = 1  # Dimension of output features (typically 1 for regression tasks)
+hidden_dim = 512  # Dimension of hidden layers in LSTM
+embed_dim = 512  # Dimension of embeddings
+n_epochs = 200  # Number of training epochs
+num_layers = 1  # Number of layers in LSTM and Transformer
+learning_rate = 1e-4  # Learning rate for optimizer
+is_bidirectional = True  # Whether the LSTM is bidirectional
+dropout_prob = 0  # Dropout probability
+device = 'cuda:0' if torch.cuda.is_available() else 'cpu'  # Use GPU if available, otherwise CPU
 
+## SHAP && person
+# Set the factor for bidirectional LSTM
 if is_bidirectional:
     D = 2
 else:
     D = 1
 
-
-# 定义DataEmbedding类
+# Define the DataEmbedding class
 class DataEmbedding(nn.Module):
     def __init__(self, input_dim, embed_dim):
         super(DataEmbedding, self).__init__()
-        self.linear = nn.Linear(input_dim, embed_dim)
-        self.activation = nn.ReLU()
+        self.linear = nn.Linear(input_dim, embed_dim)  # Linear transformation
+        self.activation = nn.ReLU()  # ReLU activation function
 
     def forward(self, x):
         x = self.linear(x)
         x = self.activation(x)
         return x
 
-
-# 定义Transformer和LSTM混合模型
+# Define the Transformer and LSTM hybrid pth
 class Transformer(nn.Module):
     def __init__(self):
         super(Transformer, self).__init__()
-        self.embedding = DataEmbedding(input_dim, embed_dim)
-        self.encoder_layer = nn.TransformerEncoderLayer(d_model=embed_dim, nhead=8, dropout=dropout_prob)
-        self.transformer_encoder = nn.TransformerEncoder(self.encoder_layer, num_layers=num_layers)
+        self.embedding = DataEmbedding(input_dim, embed_dim)  # Data embedding layer
+        self.encoder_layer = nn.TransformerEncoderLayer(d_model=embed_dim, nhead=8, dropout=dropout_prob)  # Transformer encoder layer
+        self.transformer_encoder = nn.TransformerEncoder(self.encoder_layer, num_layers=num_layers)  # Stack of Transformer encoder layers
         self.lstm = nn.LSTM(
             input_size=embed_dim,
             hidden_size=hidden_dim,
@@ -52,8 +52,8 @@ class Transformer(nn.Module):
             dropout=dropout_prob,
             batch_first=True,
             bidirectional=is_bidirectional
-        )
-        self.decoder = nn.Linear(hidden_dim * D, 1)
+        )  # LSTM layer
+        self.decoder = nn.Linear(hidden_dim * D, 1)  # Final linear layer to produce output
         self.init_weights()
 
     def init_weights(self):
@@ -62,29 +62,28 @@ class Transformer(nn.Module):
         self.decoder.weight.data.uniform_(-initrange, initrange)
 
     def _generate_square_subsequent_mask(self, sz):
-        mask = (torch.triu(torch.ones(sz, sz)) == 1).transpose(0, 1)
+        mask = (torch.triu(torch.ones(sz, sz)) == 1).transpose(0, 1)  # Create a square subsequent mask for the Transformer
         mask = mask.float().masked_fill(mask == 0, float('-inf')).masked_fill(mask == 1, float(0.0))
         return mask
 
     def forward(self, src):
-        src = self.embedding(src)
-        mask = self._generate_square_subsequent_mask(src.size(1)).to(device)
-        src = src.permute(1, 0, 2)
-        x = self.transformer_encoder(src, mask)
-        x = x.permute(1, 0, 2)
-        hidden_0 = torch.zeros(num_layers * D, x.size(0), hidden_dim).to(device)
-        c_0 = torch.zeros(num_layers * D, x.size(0), hidden_dim).to(device)
-        x, (h_n, c_n) = self.lstm(x, (hidden_0.detach(), c_0.detach()))
-        output = self.decoder(x[:, -1, :])
+        src = self.embedding(src)  # Apply embedding
+        mask = self._generate_square_subsequent_mask(src.size(1)).to(device)  # Generate mask for the Transformer
+        src = src.permute(1, 0, 2)  # Permute dimensions for Transformer (sequence, batch, features)
+        x = self.transformer_encoder(src, mask)  # Apply Transformer encoder
+        x = x.permute(1, 0, 2)  # Permute dimensions back
+        hidden_0 = torch.zeros(num_layers * D, x.size(0), hidden_dim).to(device)  # Initialize hidden state
+        c_0 = torch.zeros(num_layers * D, x.size(0), hidden_dim).to(device)  # Initialize cell state
+        x, (h_n, c_n) = self.lstm(x, (hidden_0.detach(), c_0.detach()))  # Apply LSTM
+        output = self.decoder(x[:, -1, :])  # Decode the output
         return output
 
-
-# 初始化模型、损失函数和优化器
+# Initialize pth, loss function, and optimizer
 TfModel = Transformer().to(device)
-optimizer = torch.optim.RMSprop(TfModel.parameters(), lr=learning_rate)
-criterion = torch.nn.MSELoss(reduction="mean")
+optimizer = torch.optim.Adam(TfModel.parameters(), lr=learning_rate)  # Adam optimizer
+criterion = torch.nn.MSELoss(reduction="mean")  # Mean Squared Error loss function
 
-# 训练模型
+# Training the pth
 train_losses = []
 val_losses = []
 
@@ -101,7 +100,7 @@ for epoch in range(n_epochs):
         running_loss += loss.item()
     train_losses.append(running_loss / len(train_loader))
 
-    # 验证阶段
+    # Validation phase
     TfModel.eval()
     val_loss = 0.0
     with torch.no_grad():
@@ -113,11 +112,12 @@ for epoch in range(n_epochs):
     val_losses.append(val_loss / len(test_loader))
 
     print(f'Epoch [{epoch + 1}/{n_epochs}], Train Loss: {train_losses[-1]:.4f}, Val Loss: {val_losses[-1]:.4f}')
-# 保存模型参数
-# save_path = 'model.pth'
+
+# Save pth parameters
+# save_path = 'pth.pth'
 # torch.save(TfModel.state_dict(), save_path)
 
-# 模型预测和评估
+# Model prediction and evaluation
 TfModel.eval()
 y_pred = []
 y_true = []
@@ -128,7 +128,7 @@ with torch.no_grad():
         y_pred.extend(outputs.squeeze().cpu().numpy())
         y_true.extend(targets.cpu().numpy())
 
-# 画出loss图
+# Plot loss curve
 plt.figure(figsize=(12, 6))
 plt.plot(train_losses, label='Training Loss')
 plt.plot(val_losses, label='Validation Loss')
@@ -139,15 +139,15 @@ plt.legend()
 plt.savefig("loss_transformer_lstm.svg", format='svg')
 plt.show()
 
-# 计算评估指标
+# Compute evaluation metrics
 y_pred = np.array(y_pred)
 y_true = np.array(y_true)
-rmse = np.sqrt(mean_squared_error(y_true, y_pred))
-mae = mean_absolute_error(y_true, y_pred)
-mape = np.mean(np.abs((y_true - y_pred) / y_true)) * 100
-r2 = r2_score(y_true, y_pred)
+rmse = np.sqrt(mean_squared_error(y_true, y_pred))  # Root Mean Squared Error
+mae = mean_absolute_error(y_true, y_pred)  # Mean Absolute Error
+mape = np.mean(np.abs((y_true - y_pred) / y_true)) * 100  # Mean Absolute Percentage Error
+r2 = r2_score(y_true, y_pred)  # R-squared score
+
 print(f'RMSE: {rmse:.2f}')
 print(f'MAE: {mae:.2f}')
 print(f'MAPE: {mape:.2f}%')
 print(f'R2: {r2:.2f}')
-

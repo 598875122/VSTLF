@@ -1,11 +1,11 @@
-from nat_demand.data_handle.data_new import train_loader,test_loader,X_train
+from nat_demand.data_handle.data_new import train_loader, test_loader, X_train
 import numpy as np
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 import torch
 import torch.nn as nn
 import matplotlib.pyplot as plt
 
-# parameters
+# Parameters
 input_dim = X_train.shape[2]
 n_seq = 7
 batch_size = 32
@@ -25,14 +25,13 @@ if is_bidirectional:
 else:
     D = 1
 
-
-class rnnModel(nn.Module):
+# GRU pth definition
+class GRUModel(nn.Module):
     def __init__(self):
-        super(rnnModel, self).__init__()
+        super(GRUModel, self).__init__()
 
-        # dimension for rnn or Birnn
-
-        self.rnn = nn.RNN(
+        # Define GRU or BiGRU dimensions
+        self.gru = nn.GRU(
             input_size=input_dim,
             hidden_size=hidden_dim,
             num_layers=num_layers,
@@ -41,24 +40,26 @@ class rnnModel(nn.Module):
             dropout=dropout_prob,
         )
 
+        # Define fully connected layer
         self.fc = nn.Linear(hidden_dim * D, output_dim)
 
     def forward(self, x):
         hidden_0 = torch.zeros(D * num_layers, x.size(0), hidden_dim).to(device)
 
-        output, h_n = self.rnn(x, hidden_0.detach())
+        # Forward pass through GRU
+        output, h_n = self.gru(x, hidden_0.detach())
 
-        output = self.fc(output[:,-1,:])
+        # Apply fully connected layer to the last output
+        output = self.fc(output[:, -1, :])
 
         return output
 
-
-rnnNet = rnnModel().to(device)
+# Instantiate the GRU pth
+GruNet = GRUModel().to(device)
 criterion = torch.nn.MSELoss(reduction="mean")
-# optimizer = torch.optim.Adam(params=rnnNet.parameters(), lr=learning_rate, weight_decay=weight_decay)
-optimizer = torch.optim.RMSprop(rnnNet.parameters(), lr=learning_rate, weight_decay=weight_decay)
+optimizer = torch.optim.Adam(params=GruNet.parameters(), lr=learning_rate, weight_decay=weight_decay)
 
-# 训练模型
+# Train the pth
 train_losses = []
 val_losses = []
 
@@ -68,7 +69,7 @@ for epoch in range(n_epochs):
     for inputs, targets in train_loader:
         inputs, targets = inputs.to(device), targets.to(device)
         optimizer.zero_grad()
-        outputs = rnnNet(inputs)
+        outputs = GruNet(inputs)
         loss = criterion(outputs.squeeze(), targets)
         loss.backward()
         optimizer.step()
@@ -77,29 +78,29 @@ for epoch in range(n_epochs):
 
     print(f'Epoch [{epoch + 1}/{n_epochs}], Train Loss: {train_losses[-1]:.4f}')
 
-# 画出loss图
+# Plot loss graph
 plt.figure(figsize=(12, 6))
 plt.plot(train_losses, label='Training Loss')
 plt.title('Loss over epochs')
 plt.xlabel('Epoch')
 plt.ylabel('Loss')
 plt.legend()
-plt.savefig("loss_rnnNet.svg", format='svg')
+plt.savefig("loss_gru.svg", format='svg')
 plt.show()
 
-# 模型预测和评估
-rnnNet.eval()
+# Model prediction and evaluation
+GruNet.eval()
 y_pred = []
 y_true = []
 
 with torch.no_grad():
     for inputs, targets in test_loader:
         inputs, targets = inputs.to(device), targets.to(device)
-        outputs = rnnNet(inputs)
+        outputs = GruNet(inputs)
         y_pred.extend(outputs.squeeze().cpu().numpy())
         y_true.extend(targets.cpu().numpy())
 
-# 计算评估指标
+# Calculate evaluation metrics
 y_pred = np.array(y_pred)
 y_true = np.array(y_true)
 
@@ -112,7 +113,8 @@ print(f'RMSE: {rmse:.2f}')
 print(f'MAE: {mae:.2f}')
 print(f'MAPE: {mape:.2f}%')
 print(f'R2: {r2:.2f}')
-# 绘制预测值和真实值的折线图进行对比
+
+# Plot comparison between true values and predictions
 plt.figure(figsize=(15, 5))
 plt.plot(y_true, label='True Values', color='blue')
 plt.plot(y_pred, label='Predictions', color='red', linestyle='dashed')
@@ -120,5 +122,5 @@ plt.title('Comparison of True Values and Predictions')
 plt.xlabel('Sample Index')
 plt.ylabel('Target Value')
 plt.legend()
-plt.savefig("prediction_rnnNet.svg", format='svg')
+plt.savefig("prediction_gru.svg", format='svg')
 plt.show()

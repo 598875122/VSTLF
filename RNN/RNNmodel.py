@@ -1,11 +1,11 @@
-from nat_demand.data_handle.data_new import train_loader,test_loader,X_train
+from nat_demand.data_handle.data_new import train_loader, test_loader, X_train
 import numpy as np
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 import torch
 import torch.nn as nn
 import matplotlib.pyplot as plt
 
-# parameters
+# Parameters
 input_dim = X_train.shape[2]
 n_seq = 7
 batch_size = 32
@@ -25,15 +25,13 @@ if is_bidirectional:
 else:
     D = 1
 
-
-
-class GRUModel(nn.Module):
+# Define RNN pth
+class rnnModel(nn.Module):
     def __init__(self):
-        super(GRUModel, self).__init__()
+        super(rnnModel, self).__init__()
 
-        # dimension for Gru or BiGru
-
-        self.gru = nn.GRU(
+        # RNN or BiRNN layer
+        self.rnn = nn.RNN(
             input_size=input_dim,
             hidden_size=hidden_dim,
             num_layers=num_layers,
@@ -42,65 +40,67 @@ class GRUModel(nn.Module):
             dropout=dropout_prob,
         )
 
+        # Fully connected layer
         self.fc = nn.Linear(hidden_dim * D, output_dim)
 
     def forward(self, x):
+        # Initialize hidden state
         hidden_0 = torch.zeros(D * num_layers, x.size(0), hidden_dim).to(device)
 
-        output, h_n = self.gru(x, hidden_0.detach())
+        # Forward pass through RNN
+        output, h_n = self.rnn(x, hidden_0.detach())
 
-        output = self.fc(output[:,-1,:])
+        # Pass the output of the last time step through the fully connected layer
+        output = self.fc(output[:, -1, :])
 
         return output
 
-
-GruNet = GRUModel().to(device)
+# Initialize pth, loss function, and optimizer
+rnnNet = rnnModel().to(device)
 criterion = torch.nn.MSELoss(reduction="mean")
-optimizer = torch.optim.Adam(params=GruNet.parameters(), lr=learning_rate, weight_decay=weight_decay)
+optimizer = torch.optim.RMSprop(rnnNet.parameters(), lr=learning_rate, weight_decay=weight_decay)
 
-
-# 训练模型
+# Train the pth
 train_losses = []
 val_losses = []
 
 for epoch in range(n_epochs):
-
     running_loss = 0.0
     for inputs, targets in train_loader:
         inputs, targets = inputs.to(device), targets.to(device)
-        optimizer.zero_grad()
-        outputs = GruNet(inputs)
-        loss = criterion(outputs.squeeze(), targets)
-        loss.backward()
-        optimizer.step()
-        running_loss += loss.item()
-    train_losses.append(running_loss / len(train_loader))
+        optimizer.zero_grad()  # Clear gradients
+        outputs = rnnNet(inputs)  # Forward pass
+        loss = criterion(outputs.squeeze(), targets)  # Calculate loss
+        loss.backward()  # Backpropagation
+        optimizer.step()  # Update parameters
+        running_loss += loss.item()  # Accumulate loss
+    train_losses.append(running_loss / len(train_loader))  # Average loss per epoch
 
     print(f'Epoch [{epoch + 1}/{n_epochs}], Train Loss: {train_losses[-1]:.4f}')
 
-# 画出loss图
+# Plot loss over epochs
 plt.figure(figsize=(12, 6))
 plt.plot(train_losses, label='Training Loss')
 plt.title('Loss over epochs')
 plt.xlabel('Epoch')
 plt.ylabel('Loss')
 plt.legend()
-plt.savefig("loss_gru.svg", format='svg')
+plt.savefig("loss_rnnNet.svg", format='svg')
 plt.show()
 
-# 模型预测和评估
-GruNet.eval()
+# Model prediction and evaluation
+rnnNet.eval()  # Set pth to evaluation mode
 y_pred = []
 y_true = []
 
-with torch.no_grad():
+with torch.no_grad():  # Disable gradient calculation
     for inputs, targets in test_loader:
         inputs, targets = inputs.to(device), targets.to(device)
-        outputs = GruNet(inputs)
-        y_pred.extend(outputs.squeeze().cpu().numpy())
-        y_true.extend(targets.cpu().numpy())
+        outputs = rnnNet(inputs)
+        y_pred.extend(outputs.squeeze().cpu().numpy())  # Collect predictions
+        y_true.extend(targets.cpu().numpy())  # Collect ground truth
 
-# 计算评估指标
+# Calculate evaluation metrics
 y_pred = np.array(y_pred)
 y_true = np.array(y_true)
 
@@ -113,7 +113,8 @@ print(f'RMSE: {rmse:.2f}')
 print(f'MAE: {mae:.2f}')
 print(f'MAPE: {mape:.2f}%')
 print(f'R2: {r2:.2f}')
-# 绘制预测值和真实值的折线图进行对比
+
+# Plot comparison of true values and predictions
 plt.figure(figsize=(15, 5))
 plt.plot(y_true, label='True Values', color='blue')
 plt.plot(y_pred, label='Predictions', color='red', linestyle='dashed')
@@ -121,5 +122,5 @@ plt.title('Comparison of True Values and Predictions')
 plt.xlabel('Sample Index')
 plt.ylabel('Target Value')
 plt.legend()
-plt.savefig("prediction_gru.svg", format='svg')
+plt.savefig("prediction_rnnNet.svg", format='svg')
 plt.show()

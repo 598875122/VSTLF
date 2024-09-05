@@ -9,18 +9,17 @@ class TriangularCausalMask(nn.Module):
         if len(shape) != 4:
             raise ValueError("Input tensor must be 4-dimensional (batch_size, num_heads, seq_length, seq_length)")
 
-        # 获取序列长度
+        # Get sequence length
         seq_length = shape[2]
 
-        # 创建一个下三角矩阵作为掩码
+        # Create a lower triangular matrix as the mask
         mask = torch.tril(torch.ones(seq_length, seq_length), diagonal=0)
 
-        # 扩展掩码以包含批次大小和头数维度
+        # Expand the mask to include batch size and number of heads dimensions
         mask = mask.unsqueeze(0).unsqueeze(0)  # (1, 1, seq_length, seq_length)
 
-        # 扩展掩码以匹配输入张量的批次大小和头数
-        mask = mask.expand(shape[0], shape[1], seq_length,
-                           seq_length)  # (batch_size, num_heads, seq_length, seq_length)
+        # Expand the mask to match the batch size and number of heads of the input tensor
+        mask = mask.expand(shape[0], shape[1], seq_length, seq_length)  # (batch_size, num_heads, seq_length, seq_length)
 
         if tensor.is_cuda:
             mask = mask.cuda()
@@ -78,13 +77,13 @@ class ProbAttention(nn.Module):
         out = out.permute(0, 2, 1, 3).contiguous().view(Q.size(0), -1, self.num_heads * self.head_dim)
         return self.linear_o(out)
 
-# 输入输出维度说明：
-# 输入:
+# Input-output dimension explanation:
+# Input:
 #   q: Query tensor of shape (batch_size, seq_len_q, d_model)
 #   k: Key tensor of shape (batch_size, seq_len_k, d_model)
 #   v: Value tensor of shape (batch_size, seq_len_v, d_model)
-#   attn_mask (可选): Attention mask of shape (batch_size, num_heads, seq_len_q, seq_len_k)
-# 输出:
+#   attn_mask (optional): Attention mask of shape (batch_size, num_heads, seq_len_q, seq_len_k)
+# Output:
 #   output: Output tensor of shape (batch_size, seq_len_q, d_model)
 
 
@@ -96,4 +95,3 @@ class ProbAttention(nn.Module):
 
 #     def forward(self, x):
 #         return self.linear2(torch.relu(self.linear1(x)))
-

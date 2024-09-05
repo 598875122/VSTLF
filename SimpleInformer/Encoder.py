@@ -3,6 +3,7 @@ import torch.nn as nn
 from attn import ProbAttention
 import torch.nn.functional as F
 
+
 class EncoderLayer(nn.Module):
     def __init__(self, dim_in, num_heads, hidden_dim, dropout):
         super().__init__()

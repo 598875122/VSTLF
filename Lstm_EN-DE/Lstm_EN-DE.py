@@ -24,7 +24,7 @@ if is_bidirectional:
 else:
     D = 1
 
-# 定义LSTM Encoder
+# Define LSTM Encoder
 class LSTMEncoder(nn.Module):
     def __init__(self):
         super(LSTMEncoder, self).__init__()
@@ -41,7 +41,7 @@ class LSTMEncoder(nn.Module):
         out, (hn, cn) = self.lstm(x, (h0, c0))
         return hn, cn
 
-# 定义LSTM Decoder
+# Define LSTM Decoder
 class LSTMDecoder(nn.Module):
     def __init__(self):
         super(LSTMDecoder, self).__init__()
@@ -61,7 +61,7 @@ class LSTMDecoder(nn.Module):
         out = self.fc(out_lstm)
         return out, hn, cn
 
-# 定义Encoder-Decoder模型
+# Define Encoder-Decoder pth
 class EncoderDecoder(nn.Module):
     def __init__(self):
         super(EncoderDecoder, self).__init__()
@@ -82,12 +82,12 @@ class EncoderDecoder(nn.Module):
             outputs[:, t, :] = decoder_output
         return outputs[:, -1, :]
 
-# 初始化模型、损失函数和优化器
+# Initialize pth, loss function, and optimizer
 LstmEn_De = EncoderDecoder().to(device)
 criterion = torch.nn.MSELoss(reduction="mean")
 optimizer = torch.optim.Adam(params=LstmEn_De.parameters(), lr=learning_rate, weight_decay=weight_decay)
 
-# 训练模型
+# Train the pth
 train_losses = []
 val_losses = []
 
@@ -106,7 +106,7 @@ for epoch in range(n_epochs):
 
     print(f'Epoch [{epoch + 1}/{n_epochs}], Train Loss: {train_losses[-1]:.4f}')
 
-# 画出loss图
+# Plot loss over epochs
 plt.figure(figsize=(12, 6))
 plt.plot(train_losses, label='Training Loss')
 plt.title('Loss over epochs')
@@ -116,7 +116,7 @@ plt.legend()
 plt.savefig("loss_LstmEn_De.svg", format='svg')
 plt.show()
 
-# 模型预测和评估
+# Model prediction and evaluation
 LstmEn_De.eval()
 y_pred = []
 y_true = []
@@ -128,7 +128,7 @@ with torch.no_grad():
         y_pred.extend(outputs.squeeze().cpu().numpy())
         y_true.extend(targets.cpu().numpy())
 
-# 计算评估指标
+# Calculate evaluation metrics
 y_pred = np.array(y_pred)
 y_true = np.array(y_true)
 
@@ -142,7 +142,7 @@ print(f'MAE: {mae:.2f}')
 print(f'MAPE: {mape:.2f}%')
 print(f'R2: {r2:.2f}')
 
-# 绘制预测值和真实值的折线图进行对比
+# Plot comparison of true values and predictions
 plt.figure(figsize=(15, 5))
 plt.plot(y_true, label='True Values', color='blue')
 plt.plot(y_pred, label='Predictions', color='red', linestyle='dashed')

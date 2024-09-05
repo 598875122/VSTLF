@@ -45,5 +45,3 @@ class Decoder(nn.Module):
         for layer in self.layers:
             x = layer(x, enc_out)
         return x
-
-
