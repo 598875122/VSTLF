@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 import matplotlib.pyplot as plt
 from nat_demand.data_handle.data_new import train_loader, test_loader, X_train
-
+import numpy as np
 # parameters
 input_dim = X_train.shape[2]
 n_seq = 7

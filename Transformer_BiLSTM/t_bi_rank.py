@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 import matplotlib.pyplot as plt
 from nat_demand.data_handle.data_person15 import train_loader, test_loader, X_train
-
+import numpy as np
 # Parameters
 input_dim = X_train.shape[2]  # Dimension of input features
 n_seq = 7  # Length of input sequence

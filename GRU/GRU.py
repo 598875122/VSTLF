@@ -1,5 +1,6 @@
 from nat_demand.data_handle.data_new import train_loader, test_loader, X_train
 import numpy as np
+import numpy as np
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 import torch
 import torch.nn as nn

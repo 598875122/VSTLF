@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 from sklearn.preprocessing import StandardScaler
 import torch
+import numpy as np
 from torch.utils.data import DataLoader, TensorDataset
 
 # Load data

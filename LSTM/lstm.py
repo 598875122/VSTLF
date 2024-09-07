@@ -8,6 +8,7 @@ import torch.nn as nn
 from torch.utils.data import DataLoader, TensorDataset
 import matplotlib.pyplot as plt
 import shap
+import numpy as np
 
 # Load the dataset
 data = pd.read_csv('../continuous dataset.csv')

@@ -4,7 +4,7 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 import torch
 import torch.nn as nn
 import matplotlib.pyplot as plt
-
+import numpy as np
 # Parameters
 input_dim = X_train.shape[2]
 n_seq = 7
