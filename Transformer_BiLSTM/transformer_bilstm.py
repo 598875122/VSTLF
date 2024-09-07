@@ -114,7 +114,7 @@ for epoch in range(n_epochs):
     print(f'Epoch [{epoch + 1}/{n_epochs}], Train Loss: {train_losses[-1]:.4f}, Val Loss: {val_losses[-1]:.4f}')
 
 # Save pth parameters
-save_path = '../pth/model.pth'
+save_path = '../pth/model .pth'
 torch.save(TfModel.state_dict(), save_path)
 
 # Model prediction and evaluation
