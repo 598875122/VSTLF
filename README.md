@@ -5,7 +5,7 @@ This project focuses on Very Short-Term Load Forecasting (VSTLF) using a hybrid 
 
 
 
-## Training Loss Curve
+## Mind Map
 ![img.png](pic/xmind.png)
 
 
