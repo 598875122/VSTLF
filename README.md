@@ -43,12 +43,12 @@ python Transformer.py
 python train_windowslip.py  #SimpleInformer
 ```
 ## Training Loss Curve
-![img.png](img.png)
+![img.png](pic/img.png)
 ## Prediction
-![img_1.png](img_1.png)
+![img_1.png](pic/img_1.png)
 
 ## Shap
-![img_2.png](img_2.png)
+![img_2.png](pic/img_2.png)
 
 ## Results
-![image-3.png](image-3.png)
+![image-3.png](pic/image-3.png)
