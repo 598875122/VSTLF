@@ -2,6 +2,13 @@
 
 This project focuses on Very Short-Term Load Forecasting (VSTLF) using a hybrid model combining Transformer architecture and Bidirectional Long Short-Term Memory (BiLSTM) networks. Leveraging a public dataset, we perform statistical analysis to identify key features influencing power load forecasting and train the hybrid model. Our approach surpasses several state-of-the-art methods in predictive performance. Additionally, we use Shapley Additive Explanations (SHAP) for feature importance analysis, enhancing the model's interpretability.
 
+
+
+
+## Training Loss Curve
+![img.png](pic/xmind.png)
+
+
 ## Requirements
 * python>=3.8
 
