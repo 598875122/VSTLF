@@ -5,7 +5,7 @@ This project focuses on Very Short-Term Load Forecasting (VSTLF) using a hybrid 
 
 
 
-## Mind Map
+## Project Map
 ![img.png](pic/xmind.png)
 
 
