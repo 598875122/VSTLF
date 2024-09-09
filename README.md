@@ -58,4 +58,4 @@ python train_windowslip.py  #SimpleInformer
 ![img_2.png](pic/img_2.png)
 
 ## Results
-![image-3.png](pic/image-3.png)
+![image-3.png](pic/image_3.png)
