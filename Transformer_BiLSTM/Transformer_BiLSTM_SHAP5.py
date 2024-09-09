@@ -4,7 +4,7 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 import torch
 import torch.nn as nn
 import matplotlib.pyplot as plt
-from VSTLF.data_preprocess.data_raw16 import train_loader, test_loader, X_train,X_test
+from VSTLF.data_preprocess.data_raw16 import train_loader, test_loader, X_train, X_test, data, timestamps_test
 
 # Parameters
 input_dim = X_train.shape[2]  # Number of input features
@@ -165,3 +165,30 @@ plt.legend(fontsize=12)  # Set legend font size
 plt.savefig("prediction_transformer_bilstm.svg", format='svg')
 plt.show()
 
+#SHAP analysis (commented out)
+background = X_train[:100].to(device)
+test_data = X_test[:100].to(device)
+
+# Compute SHAP values using GradientExplainer
+TfModel.train()
+explainer = shap.GradientExplainer(TfModel, background)
+TfModel.eval()
+TfModel.train()
+shap_values = explainer.shap_values(test_data)
+TfModel.eval()
+# Get feature names
+
+feature_names = data.columns
+
+# Flatten shap_values to match X_display
+shap_values = np.array(shap_values).reshape(-1, X_train.shape[2])
+X_display = test_data.cpu().numpy().reshape(-1, X_train.shape[2])
+
+# Visualize explanation for the first prediction
+shap.initjs()
+force_plot = shap.force_plot(np.mean(shap_values), shap_values[0], X_display[0], feature_names=feature_names)
+
+# Save as HTML file
+shap.save_html("force_plot_0.html", force_plot)
+# Plot SHAP summary bar chart
+shap.summary_plot(shap_values, X_display, feature_names=feature_names, plot_type="bar")

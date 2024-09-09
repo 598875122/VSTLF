@@ -20,7 +20,7 @@ This project focuses on Very Short-Term Load Forecasting (VSTLF) using a hybrid 
 
 * shap==0.46.0
 
-  
+## The root directory name must be VSTLF
 
 ## Directory Structure
 
@@ -35,19 +35,22 @@ This project focuses on Very Short-Term Load Forecasting (VSTLF) using a hybrid 
 
 * STEP 1. Download the dataset and run data preprocessing.
 ```
-python data_new.py
-python data_person15.py  # Person-related correlation feature data
+python data_raw16.py
+python data_person5.py  # Person-related correlation Top 5 feature data
+python data_person15.py  # Person-related correlation Top 15 feature data
 ```
 * STEP 2. Run the corresponding model for training and performance evaluation.
 ```
 # example
-python transformer_bilstm.py  #Includes interpretability analysis
+python Transformer_BiLSTM.py  #Includes interpretability analysis
 python lstm.py
 python GRU.py
 python Lstm_EN-DE.py
 python Transformer_lstm.py
 python Transformer.py
-python train_windowslip.py  #SimpleInformer
+python Transformer_BiLSTM_Pearson5.py  #Pearson5 interpretability analysis
+python Transformer_BiLSTM_Pearson15.py  #Pearson15 interpretability analysis
+python Transformer_BiLSTM_SHAP5.py  #SHAP5 interpretability analysis
 ```
 ## Training Loss Curve
 ![img.png](pic/img.png)

@@ -6,7 +6,7 @@ import numpy as np
 from torch.utils.data import DataLoader, TensorDataset
 
 # Load data
-data = pd.read_csv('../continuous dataset.csv')
+data = pd.read_csv('../data_source/continuous dataset.csv')
 
 # Ensure the 'datetime' column is of datetime type
 data['datetime'] = pd.to_datetime(data['datetime'])
@@ -18,11 +18,11 @@ data_target = data['nat_demand']
 # Calculate Pearson correlation with the target value
 correlations = data.corrwith(data_target).abs()
 
-# Select the top 5 features with the highest correlation
-top_15_features = correlations.nlargest(5).index
+# Select the top 15 features with the highest correlation
+top_15_features = correlations.nlargest(15).index
 print(top_15_features)
 
-# Select the top 5 most correlated features
+# Select the top 15 most correlated features
 data = data[top_15_features]
 
 # Variables to store processed data

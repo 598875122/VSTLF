@@ -3,7 +3,7 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 import torch
 import torch.nn as nn
 import matplotlib.pyplot as plt
-from nat_demand.data_handle.data_person15 import train_loader, test_loader, X_train
+from VSTLF.data_preprocess.data_pearson15 import train_loader, test_loader, X_train, X_test, data
 import numpy as np
 # Parameters
 input_dim = X_train.shape[2]  # Dimension of input features
